@@ -1,15 +1,24 @@
 {
     "configurations": [
         {
-            "name": "Mac",
+            "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/include/glad",
+                "${workspaceFolder}/include/glm",
+                "${workspaceFolder}/include/glm/detail",
+                "${workspaceFolder}/include/glm/ext",
+                "${workspaceFolder}/include/glm/gtc",
+                "${workspaceFolder}/include/glm/gtx",
+                "${workspaceFolder}/include/glm/simd",
+                "${workspaceFolder}/include/glm/simd",
+                "/usr/include/GL"
             ],
-            "defines": [],
-            "compilerPath": "/usr/bin/clang",
+            "defines": ["_DEBUG"],
+            "compilerPath": "/usr/bin/g++",
             "cStandard": "c17",
-            "cppStandard": "c++14",
-            "intelliSenseMode": "macos-clang-arm64"
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
         }
     ],
     "version": 4

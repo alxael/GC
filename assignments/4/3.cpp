@@ -31,7 +31,7 @@ int colorCode, translationCode;
 glm::mat4 myMatrix, resizeMatrix;
 glm::mat4 translationMatrix, scaleMatrix, transformationMatrix;
 
-float xMin = -1000, xMax = 1000, yMin = -1000, yMax = 1000;
+float xMin = -500, xMax = 500, yMin = -500, yMax = 500;
 float deltaX = xMax - xMin, deltaY = yMax - yMin;
 float centerX = (xMin + xMax) / 2, centerY = (yMin + yMax) / 2;
 
@@ -128,9 +128,9 @@ void CreateVBO(void)
         {Position(0.0f, yMax, 0.0f), Color(0.0f, 0.0f, 0.0f), TextureCoordinates(0.0f, 0.f)},
         // square
         {Position(0.f, 0.f, 0.0f), Color(dis(gen), dis(gen), dis(gen)), TextureCoordinates(0.0f, 0.f)},
-        {Position(300.f, 0.f, 0.0f), Color(dis(gen), dis(gen), dis(gen)), TextureCoordinates(1.0f, 0.f)},
-        {Position(300.f, 300.f, 0.0f), Color(dis(gen), dis(gen), dis(gen)), TextureCoordinates(1.0f, 1.f)},
-        {Position(0.f, 300.f, 0.0f), Color(dis(gen), dis(gen), dis(gen)), TextureCoordinates(0.0f, 1.f)},
+        {Position(50.f, 0.f, 0.0f), Color(dis(gen), dis(gen), dis(gen)), TextureCoordinates(1.0f, 0.f)},
+        {Position(50.f, 50.f, 0.0f), Color(dis(gen), dis(gen), dis(gen)), TextureCoordinates(1.0f, 1.f)},
+        {Position(0.f, 50.f, 0.0f), Color(dis(gen), dis(gen), dis(gen)), TextureCoordinates(0.0f, 1.f)},
     };
 
     std::vector<GLuint> indices = {4, 5, 6, 6, 7, 4};

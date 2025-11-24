@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "cmath": "cpp",
+        "soil.h": "c",
+        "stb_image_aug.h": "c"
+    }
+}

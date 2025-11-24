@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build OpenGL Project",
+      "type": "shell",
+      "command": "g++",
+      "args": [
+        "${file}",
+        "src/*.cpp",
+        "src/glad.c",
+        "src/image_dxt.c",
+        "src/image_helper.c",
+        "src/stb_image_aug.c",
+        "src/soil.c",
+        "-o",
+        "${workspaceFolder}/build/${fileBasenameNoExtension}",
+        "-I${workspaceFolder}/include",
+        "-lGL",
+        "-lGLEW",
+        "-lGLU",
+        "-lglut",
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}

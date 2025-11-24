@@ -31,7 +31,8 @@ float xMin = -1000, xMax = 1000, yMin = -1000, yMax = 1000;
 float deltaX = xMax - xMin, deltaY = yMax - yMin;
 float centerX = (xMin + xMax) / 2, centerY = (yMin + yMax) / 2;
 
-float squaresStart = -500.0f, squaresEnd = 500.0f, squaresStep = 200.0f, squaresBaseY = 400.f;
+int vertexCount = 20;
+float firstCircleRadius = 200.f, secondCircleRadius = 400.f;
 
 struct Position
 {
@@ -98,11 +99,13 @@ void CreateVBO(void)
     std::uniform_real_distribution<float> dis(0.0f, 1.0f);
 
     int startIndex = vertices.size();
-    for(float xValue = squaresStart; xValue <= squaresEnd; xValue += squaresStep) {
-        vertices.push_back({Position(xValue, squaresBaseY + squaresStep, 0.0f), Color(dis(gen), dis(gen), dis(gen))});
-        vertices.push_back({Position(xValue, squaresBaseY, 0.0f), Color(dis(gen), dis(gen), dis(gen))});
-        
-        if(xValue != 0) {
+    for(int vertexIndex = 0; vertexIndex <= vertexCount; vertexIndex ++) {
+        float angle = (2 * vertexIndex * glm::pi<float>()) / vertexCount;
+
+        vertices.push_back({Position(firstCircleRadius * cos(angle), firstCircleRadius * sin(angle), 0.0f), Color(dis(gen), dis(gen), dis(gen))});
+        vertices.push_back({Position(secondCircleRadius * cos(angle), secondCircleRadius * sin(angle), 0.0f), Color(dis(gen), dis(gen), dis(gen))});
+    
+        if(vertexIndex != 0) {
             // first triangle
             indices.emplace_back(startIndex);
             indices.emplace_back(startIndex + 1);
@@ -196,8 +199,8 @@ void RenderFunction(void)
     glDrawArrays(GL_LINES, 0, 4);
 
     glLineWidth(3.0);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, 3 * (int)((squaresEnd - squaresStart) / squaresStep) * 2, GL_UNSIGNED_INT, (void*)(0));
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDrawElements(GL_TRIANGLES, 3 * vertexCount * 2, GL_UNSIGNED_INT, (void*)(0));
 
     glFlush();
 }
