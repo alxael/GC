@@ -1,0 +1,393 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <vector>
+#include <random>
+#include <GL/glew.h>
+#include <GL/freeglut.h>
+
+#include "loadShaders.h"
+
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+
+#include "SOIL.h"
+
+GLuint
+    VaoId,
+    VbPositionId,
+    VbColorId,
+    VbModelMatrixId,
+    VbTexCoordId,
+    EboId,
+    ColorBufferId,
+    ProgramId,
+    colorCodeLocation,
+    viewLocation,
+    projectionLocation,
+    texture;
+
+GLint winWidth = 800, winHeight = 800;
+
+int colorCode;
+const int instanceCount = 12;
+const int parallelsCount = 30, meridiansCount = 30;
+const int vertexCount = (parallelsCount + 1) * (meridiansCount + 1);
+const float uMin = -glm::pi<float>() / 2, uMax = glm::pi<float>() / 2;
+const float vMin = 0, vMax = 2 * glm::pi<float>();
+const float uStep = (uMax - uMin) / parallelsCount, vStep = (vMax - vMin) / meridiansCount;
+const float radius = 50;
+
+glm::vec3 observer = glm::vec3(200.f, 200.f, 200.f);
+glm::vec3 referencePoint = glm::vec3(0.f, 0.f, 0.f);
+glm::vec3 vertex = glm::vec3(0.f, 1.f, 1.f);
+
+glm::mat4 view, projection;
+
+float alpha = 0.f, beta = 0.f, distance = 300.f, alphaIncrementOne = 0.01f, alphaIncrementTwo = 0.01f;
+float xMin = -200.f, xMax = 200.f, yMin = -200.f, yMax = 200.f, zMin = -200.f, zMax = 200.f;
+float distanceNear = 1.f, fov = 90.f * glm::pi<float>() / 180.f, width = 800, height = 800;
+
+bool keyStates[256] = {0};
+bool specialKeyStates[512] = {0};
+
+void CreateVBO(void)
+{
+    std::vector<glm::vec4> vertices(vertexCount);
+    std::vector<glm::vec3> colors(vertexCount);
+    std::vector<glm::vec2> texCoords(vertexCount);
+
+    std::vector<GLuint> indices(6 * parallelsCount * meridiansCount, 0); // Only valid quads
+
+    float u, v, x_vf, y_vf, z_vf;
+    int index, triangleIndex = 0;
+
+    for (int merid = 0; merid < meridiansCount + 1; merid++)
+    {
+        for (int parr = 0; parr < parallelsCount + 1; parr++)
+        {
+            u = uMin + parr * uStep;
+            v = vMin + merid * vStep;
+            x_vf = radius * cosf(u) * cosf(v);
+            y_vf = radius * cosf(u) * sinf(v);
+            z_vf = radius * sinf(u);
+
+            index = merid * (parallelsCount + 1) + parr;
+            vertices[index] = glm::vec4(x_vf, y_vf, z_vf, 1.0f);
+            colors[index] = glm::vec3(0.2f + sinf(u), 0.1f + cosf(v), 0.5f + 0.5f * sinf(u));
+            texCoords[index] = glm::vec2((v - vMin) / (vMax - vMin), (u - uMin) / (uMax - uMin));
+        }
+    }
+
+    for (int merid = 0; merid < meridiansCount; merid++)
+    {
+        for (int parr = 0; parr < parallelsCount; parr++)
+        {
+            int i1 = merid * (parallelsCount + 1) + parr;
+            int i2 = i1 + 1;
+            int i3 = i1 + (parallelsCount + 1);
+            int i4 = i3 + 1;
+
+            indices[triangleIndex++] = i1;
+            indices[triangleIndex++] = i2;
+            indices[triangleIndex++] = i4;
+
+            indices[triangleIndex++] = i1;
+            indices[triangleIndex++] = i4;
+            indices[triangleIndex++] = i3;
+        }
+    }
+
+    std::vector<glm::mat4> modelMatrices;
+    modelMatrices.reserve(instanceCount);
+
+    float bodyBottomScale = 1.3f;
+    float bodyMiddleScale = 1.0f;
+    float bodyHeadScale = 0.8f;
+
+    float bottomY = -radius * 1.3f;
+    float middleY = bottomY + radius * (bodyBottomScale + bodyMiddleScale) * 0.8f;
+    float headY = middleY + radius * (bodyMiddleScale + bodyHeadScale) * 0.8f;
+
+    modelMatrices.push_back(
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, bottomY, 0.0f)) *
+        glm::scale(glm::mat4(1.0f),
+                   glm::vec3(bodyBottomScale, bodyBottomScale, bodyBottomScale)));
+
+    modelMatrices.push_back(
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, middleY, 0.0f)) *
+        glm::scale(glm::mat4(1.0f),
+                   glm::vec3(bodyMiddleScale, bodyMiddleScale, bodyMiddleScale)));
+
+    modelMatrices.push_back(
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, headY, 0.0f)) *
+        glm::scale(glm::mat4(1.0f),
+                   glm::vec3(bodyHeadScale, bodyHeadScale, bodyHeadScale)));
+
+    float eyeRadiusOffset = radius * bodyHeadScale * 0.6f;
+    float eyeHeightOffset = radius * bodyHeadScale * 0.2f;
+    float eyeForwardOffset = radius * bodyHeadScale * 0.9f;
+    float eyeScale = 0.18f;
+
+    modelMatrices.push_back(
+        glm::translate(glm::mat4(1.0f),
+                       glm::vec3(-eyeRadiusOffset, headY + eyeHeightOffset, eyeForwardOffset)) *
+        glm::scale(glm::mat4(1.0f),
+                   glm::vec3(eyeScale, eyeScale, eyeScale)));
+
+    modelMatrices.push_back(
+        glm::translate(glm::mat4(1.0f),
+                       glm::vec3(eyeRadiusOffset, headY + eyeHeightOffset, eyeForwardOffset)) *
+        glm::scale(glm::mat4(1.0f),
+                   glm::vec3(eyeScale, eyeScale, eyeScale)));
+
+    float mouthRadiusOffset = radius * bodyHeadScale * 0.45f;
+    float mouthVerticalOffset = -radius * bodyHeadScale * 0.4f;
+    float mouthForwardOffset = eyeForwardOffset;
+    float mouthScale = 0.14f;
+    int mouthPoints = 7;
+    float mouthArcAngle = glm::radians(100.0f);
+
+    for (int i = 0; i < mouthPoints; ++i)
+    {
+        float t = (float(i) / (mouthPoints - 1)) - 0.5f;
+        float angle = t * mouthArcAngle;
+
+        float x = mouthRadiusOffset * sin(angle);
+        float y = headY + mouthVerticalOffset + mouthRadiusOffset * (1.0f - cos(angle));
+        float z = mouthForwardOffset;
+
+        modelMatrices.push_back(
+            glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)) *
+            glm::scale(glm::mat4(1.0f),
+                       glm::vec3(mouthScale, mouthScale, mouthScale)));
+    }
+
+    glGenVertexArrays(1, &VaoId);
+    glBindVertexArray(VaoId);
+
+    glGenBuffers(1, &VbPositionId);
+    glBindBuffer(GL_ARRAY_BUFFER, VbPositionId);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec4), vertices.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void *)0);
+
+    glGenBuffers(1, &VbColorId);
+    glBindBuffer(GL_ARRAY_BUFFER, VbColorId);
+    glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec3), colors.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+
+    glGenBuffers(1, &VbTexCoordId);
+    glBindBuffer(GL_ARRAY_BUFFER, VbTexCoordId);
+    glBufferData(GL_ARRAY_BUFFER, texCoords.size() * sizeof(glm::vec2), texCoords.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void *)0);
+
+    glGenBuffers(1, &VbModelMatrixId);
+    glBindBuffer(GL_ARRAY_BUFFER, VbModelMatrixId);
+    glBufferData(GL_ARRAY_BUFFER, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data(), GL_STATIC_DRAW);
+    for (int col = 0; col < 4; col++)
+    {
+        glEnableVertexAttribArray(3 + col);
+        glVertexAttribPointer(3 + col, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)(sizeof(glm::vec4) * col));
+        glVertexAttribDivisor(3 + col, 1);
+    }
+
+    glGenBuffers(1, &EboId);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EboId);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+}
+
+void DestroyVBO(void)
+{
+    glDisableVertexAttribArray(6);
+    glDisableVertexAttribArray(5);
+    glDisableVertexAttribArray(4);
+    glDisableVertexAttribArray(3);
+    glDisableVertexAttribArray(2);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    glDeleteBuffers(1, &VbTexCoordId);
+    glDeleteBuffers(1, &VbPositionId);
+    glDeleteBuffers(1, &VbColorId);
+    glDeleteBuffers(1, &VbModelMatrixId);
+    glDeleteBuffers(1, &EboId);
+
+    glBindVertexArray(0);
+    glDeleteVertexArrays(1, &VaoId);
+}
+
+void CreateShaders(void)
+{
+    ProgramId = LoadShaders("../assignments/6/shader-3.vert", "../assignments/6/shader-3.frag");
+    glUseProgram(ProgramId);
+}
+
+void DestroyShaders(void)
+{
+    glDeleteProgram(ProgramId);
+}
+
+void Initialize(void)
+{
+    glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+
+    CreateVBO();
+    CreateShaders();
+
+    viewLocation = glGetUniformLocation(ProgramId, "viewMatrix");
+    projectionLocation = glGetUniformLocation(ProgramId, "projectionMatrix");
+    colorCodeLocation = glGetUniformLocation(ProgramId, "colorCodeShader");
+}
+
+void ProcessKeys(void)
+{
+    if (keyStates['s'])
+    {
+        distance -= 5.0f;
+    }
+    if (keyStates['w'])
+    {
+        distance += 5.0f;
+    }
+    if (specialKeyStates[GLUT_KEY_LEFT])
+    {
+        beta -= 0.01f;
+    }
+    if (specialKeyStates[GLUT_KEY_RIGHT])
+    {
+        beta += 0.01f;
+    }
+    if (specialKeyStates[GLUT_KEY_UP])
+    {
+        alpha += alphaIncrementOne;
+    }
+    if (specialKeyStates[GLUT_KEY_DOWN])
+    {
+        alpha -= alphaIncrementTwo;
+    }
+}
+
+void DrawObserverPosition(void)
+{
+    glUseProgram(0);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, winWidth, 0, winHeight);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_DEPTH_TEST);
+    glColor3f(0.0f, 0.0f, 0.0f);
+
+    char observerStr[128];
+    snprintf(observerStr, sizeof(observerStr), "(%.1f, %.1f, %.1f)", observer.x, observer.y, observer.z);
+
+    int textX = winWidth - (int)(8 * strlen(observerStr)) - 10;
+    int textY = winHeight - 20;
+
+    glRasterPos2i(textX, textY);
+
+    for (const char *c = observerStr; *c != '\0'; c++)
+    {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+    }
+
+    glEnable(GL_DEPTH_TEST);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glUseProgram(ProgramId);
+}
+
+void RenderFunction(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+
+    ProcessKeys();
+
+    observer = referencePoint + glm::vec3(distance * cos(alpha) * cos(beta),
+                                          distance * cos(alpha) * sin(beta),
+                                          distance * sin(alpha));
+    view = glm::lookAt(observer, referencePoint, vertex);
+    projection = glm::perspective(fov, GLfloat(width) / GLfloat(height), distanceNear, 2000.f);
+
+    glUseProgram(ProgramId);
+    glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
+
+    glBindVertexArray(VaoId);
+
+    colorCode = 0;
+    glUniform1i(colorCodeLocation, colorCode);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(glGetUniformLocation(ProgramId, "myTexture"), 0);
+
+    glDrawElementsInstanced(GL_TRIANGLES, 6 * parallelsCount * meridiansCount,
+                            GL_UNSIGNED_INT, 0, instanceCount);
+
+    glBindVertexArray(0);
+    DrawObserverPosition();
+    glutSwapBuffers();
+    glFlush();
+}
+
+void Cleanup(void)
+{
+    DestroyShaders();
+    DestroyVBO();
+}
+
+// key functions
+
+void handleKeyDown(unsigned char key, int, int)
+{
+    keyStates[key] = true;
+    if (key == 27)
+        exit(0);
+}
+void handleKeyUp(unsigned char key, int, int) { keyStates[key] = false; }
+void handleSpecialDown(int key, int, int) { specialKeyStates[key] = true; }
+void handleSpecialUp(int key, int, int) { specialKeyStates[key] = false; }
+
+int main(int argc, char *argv[])
+{
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+    glutInitWindowPosition(100, 100);
+    glutInitWindowSize(winWidth, winHeight);
+    glutCreateWindow("Lab 6 - 3");
+
+    glewInit();
+
+    Initialize();
+    glutDisplayFunc(RenderFunction);
+    glutIdleFunc(RenderFunction);
+
+    glutKeyboardFunc(handleKeyDown);
+    glutKeyboardUpFunc(handleKeyUp);
+    glutSpecialFunc(handleSpecialDown);
+    glutSpecialUpFunc(handleSpecialUp);
+
+    glutCloseFunc(Cleanup);
+
+    glutMainLoop();
+
+    return 0;
+}
