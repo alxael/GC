@@ -16,7 +16,6 @@ layout(location=1) in vec3 in_Color;                    //  Se preia din buffer 
 layout(location=2) in vec3 in_TexCoord;                   //  Se preia din buffer de pe a treia pozitie (2) atributul care contine coordonatele de texturare;
 
 //  Variabile de iesire;
-out vec4 gl_Position;   //  Comentati daca este cazul! - Transmite pozitia actualizata spre programul principal;
 out vec3 ex_Color;      //  Transmite culoarea (de modificat in Shader.frag); 
 out vec2 tex_Coord;     //  Transmite textura (de modificat in Shader.frag);  
 
