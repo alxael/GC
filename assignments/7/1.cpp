@@ -326,23 +326,47 @@ void Initialize(void)
 {
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
+    // glossy sphere setup
     shiny.emission = glm::vec3(0.0f, 0.0f, 0.0f);
     shiny.ambient = glm::vec3(0.96f, 0.71f, 0.1f);
     shiny.diffuse = glm::vec3(0.96f, 0.71f, 0.1f);
     shiny.specular = glm::vec3(1.0f, 1.0f, 1.0f);
     shiny.shininessValue = 100.0f;
 
+    // matte cube setup
     opaque.emission = glm::vec3(0.0f, 0.0f, 0.0f);
-    opaque.ambient = glm::vec3(0.5f, 0.25f, 0.2f);
-    opaque.diffuse = glm::vec3(1.0f, 0.5f, 0.4f);
-    opaque.specular = glm::vec3(0.0f, 0.0f, 0.0f);
-    opaque.shininessValue = 1.0f;
+    opaque.ambient = glm::vec3(0.25f, 0.25f, 0.28f);
+    opaque.diffuse = glm::vec3(0.55f, 0.55f, 0.58f);
+    opaque.specular = glm::vec3(0.08f, 0.08f, 0.08f);
+    opaque.shininessValue = 6.0f;
 
+    // light setup for creating a darker environment (kinda like a flashlight)
     lightSource.position = glm::vec4(30.0f, 90.f, 50.0f, 1.0f);
     lightSource.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
-    lightSource.diffuse = glm::vec3(1.8f, 1.8f, 1.8f);        // brighter
-    lightSource.specular = glm::vec3(1.8f, 1.8f, 1.8f);       // brighter
-    lightSource.attenuation = glm::vec3(1.0f, 0.02f, 0.001f); // mild falloff
+    lightSource.diffuse = glm::vec3(1.8f, 1.8f, 1.8f);
+    lightSource.specular = glm::vec3(1.8f, 1.8f, 1.8f);
+    lightSource.attenuation = glm::vec3(1.0f, 0.02f, 0.001f);
+
+    // // golden sphere setup
+    // shiny.emission = glm::vec3(0.05f, 0.05f, 0.05f);
+    // shiny.ambient = glm::vec3(0.80f, 0.60f, 0.15f);
+    // shiny.diffuse = glm::vec3(0.95f, 0.75f, 0.25f);
+    // shiny.specular = glm::vec3(1.0f, 0.95f, 0.85f);
+    // shiny.shininessValue = 64.0f;
+
+    // // matte cube setup
+    // opaque.emission = glm::vec3(0.0f, 0.0f, 0.0f);
+    // opaque.ambient = glm::vec3(0.25f, 0.20f, 0.18f);
+    // opaque.diffuse = glm::vec3(0.8f, 0.45f, 0.35f);
+    // opaque.specular = glm::vec3(0.1f, 0.08f, 0.06f);
+    // opaque.shininessValue = 8.0f;
+
+    // // light for golden sphere and matte cube setup
+    // lightSource.position = glm::vec4(60.0f, 120.f, 80.0f, 1.0f);
+    // lightSource.ambient = glm::vec3(0.15f, 0.15f, 0.20f);
+    // lightSource.diffuse = glm::vec3(1.4f, 1.4f, 1.4f);
+    // lightSource.specular = glm::vec3(2.0f, 2.0f, 2.0f);
+    // lightSource.attenuation = glm::vec3(1.0f, 0.01f, 0.0005f);
 
     CreateVAO1();
     CreateVAO2();
@@ -437,7 +461,7 @@ int main(int argc, char *argv[])
     glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
     glutInitWindowSize(winWidth, winHeight);
     glutInitWindowPosition(100, 100);
-    glutCreateWindow("Tema 7 - 1");
+    glutCreateWindow("Tema 7 - 3");
 
     glewInit();
 
